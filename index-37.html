@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Accident Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220;
+    --panel:#121B2E;
+    --panel-alt:#1A2540;
+    --border:#243252;
+    --text:#E7ECF3;
+    --muted:#8896B3;
+    --amber:#FFB020;
+    --danger:#E5484D;
+    --safe:#2DD4A7;
+    --mono: 'Space Grotesk', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:480px;margin:0 auto;padding:20px 18px 60px;}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;padding:6px 0 20px;}
+  header.top .brand{display:flex;align-items:center;gap:10px;}
+  header.top .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--muted);transition:background .3s;}
+  header.top .brand .dot.safe{background:var(--safe);box-shadow:0 0 0 4px rgba(45,212,167,.15);}
+  header.top .brand .dot.warn{background:var(--amber);box-shadow:0 0 0 4px rgba(255,176,32,.18);}
+  header.top .brand .dot.danger{background:var(--danger);box-shadow:0 0 0 4px rgba(229,72,77,.18);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  header.top h1{font-family:var(--mono);font-size:15px;font-weight:600;margin:0;letter-spacing:.2px;}
+  header.top .sub{font-size:11px;color:var(--muted);margin-top:1px;}
+  header.top button.iconbtn{background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:10px;width:38px;height:38px;font-size:16px;cursor:pointer;}
+
+  .status-card{
+    background:linear-gradient(180deg,var(--panel) 0%, var(--panel-alt) 100%);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:28px 20px 24px;
+    text-align:center;
+    margin-bottom:16px;
+  }
+  .status-card .state{
+    font-family:var(--mono);
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:.5px;
+  }
+  .status-card .state.safe{color:var(--safe);}
+  .status-card .state.warn{color:var(--amber);}
+  .status-card .state.danger{color:var(--danger);}
+  .status-card .desc{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5;}
+
+  .sensor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .sensor-tile{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+  .sensor-tile .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}
+  .sensor-tile .val{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:4px;}
+  .sensor-tile .val.flag{color:var(--danger);}
+
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;}
+  .section h2{font-size:13px;margin:0 0 12px;color:var(--text);font-weight:600;}
+  .section h2 .n{color:var(--muted);font-weight:500;}
+
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;}
+  .field input, .field select, .field textarea{
+    width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+    border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;
+  }
+  .field textarea{resize:vertical;min-height:52px;}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--amber);outline-offset:0;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  button.primary{
+    width:100%;background:var(--amber);color:#1A1200;border:none;border-radius:12px;
+    padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+  button.primary:active{opacity:.85;}
+  button.secondary{
+    width:100%;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:12px;
+    padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;
+  }
+  button.danger-outline{
+    width:100%;background:rgba(229,72,77,.08);color:var(--danger);border:1px solid rgba(229,72,77,.4);
+    border-radius:12px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;
+  }
+  .savebtn{color:var(--safe);font-size:12px;text-align:right;height:16px;margin-top:6px;}
+
+  .loglist{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto;}
+  .logitem{border:1px solid var(--border);background:var(--panel-alt);border-radius:10px;padding:10px 12px;font-size:12px;}
+  .logitem .t{color:var(--muted);font-family:var(--mono);font-size:10px;}
+  .logitem .s{margin-top:3px;font-weight:600;}
+  .logitem .s.sent{color:var(--danger);}
+  .logitem .s.cancelled{color:var(--muted);}
+  .empty{color:var(--muted);font-size:12px;text-align:center;padding:14px 0;}
+
+  /* full-screen crash confirm overlay */
+  .overlay{
+    position:fixed;inset:0;background:rgba(8,10,18,.92);backdrop-filter:blur(4px);
+    display:flex;align-items:center;justify-content:center;z-index:50;
+    opacity:0;pointer-events:none;transition:opacity .2s;
+  }
+  .overlay.show{opacity:1;pointer-events:all;}
+  .overlay .box{width:min(360px,88vw);text-align:center;}
+  .overlay .ring{
+    width:150px;height:150px;border-radius:50%;margin:0 auto 22px;
+    display:flex;align-items:center;justify-content:center;position:relative;
+    border:4px solid var(--danger);
+  }
+  .overlay .ring .count{font-family:var(--mono);font-size:52px;font-weight:700;color:var(--danger);}
+  .overlay h2{font-size:19px;margin:0 0 8px;}
+  .overlay p{font-size:13px;color:var(--muted);margin:0 0 22px;line-height:1.5;}
+  .overlay button.cancel{
+    width:100%;background:var(--text);color:#0B1220;border:none;border-radius:14px;padding:16px;
+    font-size:15px;font-weight:700;cursor:pointer;
+  }
+
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+    padding:11px 18px;border-radius:12px;font-size:13px;z-index:60;
+    opacity:0;transition:opacity .3s,bottom .3s;pointer-events:none;
+  }
+  .toast.show{opacity:1;bottom:30px;}
+
+  .permnote{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5;}
+  .test-hint{font-size:11px;color:var(--muted);margin-top:8px;text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="dot" id="stateDot"></div>
+      <div>
+        <h1>Accident Detector</h1>
+        <div class="sub" id="subLine">Sensors idle · tap Enable to start</div>
+      </div>
+    </div>
+    <button class="iconbtn" id="profileToggleBtn" title="Safety profile">⚕</button>
+  </header>
+
+  <div class="status-card">
+    <div class="state safe" id="stateLabel">MONITORING OFF</div>
+    <div class="desc" id="stateDesc">Enable sensors to start automatic crash detection. Runs quietly in the background while this tab is open.</div>
+  </div>
+
+  <div class="sensor-grid">
+    <div class="sensor-tile">
+      <div class="label">Impact (Δg)</div>
+      <div class="val" id="accelVal">--</div>
+    </div>
+    <div class="sensor-tile">
+      <div class="label">Rotation °/s</div>
+      <div class="val" id="gyroVal">--</div>
+    </div>
+    <div class="sensor-tile">
+      <div class="label">Speed km/h</div>
+      <div class="val" id="speedVal">--</div>
+    </div>
+  </div>
+
+  <div class="section" id="enableSection">
+    <h2>Step 1 <span class="n">· Enable sensors</span></h2>
+    <button class="primary" id="enableBtn">Enable Motion &amp; Location</button>
+    <div class="permnote">Iske liye motion sensor aur location permission allow karni hogi. iPhone par ek extra "Allow Motion" popup aayega — allow kar dena.</div>
+  </div>
+
+  <div class="section" id="profileSection" style="display:none;">
+    <h2>Safety Profile <span class="n">· sent with every alert</span></h2>
+    <div class="field">
+      <label>Full name</label>
+      <input type="text" id="pName" placeholder="e.g. Riya Sharma">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Blood group</label>
+        <select id="pBlood">
+          <option value="">Select</option>
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Age</label>
+        <input type="number" id="pAge" placeholder="e.g. 21" min="1" max="120">
+      </div>
+    </div>
+    <div class="field">
+      <label>Allergies / medical conditions</label>
+      <textarea id="pMedical" placeholder="e.g. Penicillin allergy, asthma — or 'none'"></textarea>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Emergency contact name</label>
+        <input type="text" id="pContactName" placeholder="e.g. Mother">
+      </div>
+      <div class="field">
+        <label>Emergency contact phone</label>
+        <input type="tel" id="pContactPhone" placeholder="+91...">
+      </div>
+    </div>
+    <button class="primary" id="saveProfileBtn">Save Profile</button>
+    <div class="savebtn" id="saveStatus"></div>
+  </div>
+
+  <div class="section">
+    <h2>Alert History</h2>
+    <div class="loglist" id="logList">
+      <div class="empty">No alerts yet</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <button class="danger-outline" id="testBtn">Run Test Alert (dev/demo only)</button>
+    <div class="test-hint">Isse real detection ko bina crash kiye poora flow test kar sakte ho — countdown, cancel, aur Supabase me alert save hona.</div>
+  </div>
+
+</div>
+
+<div class="overlay" id="crashOverlay">
+  <div class="box">
+    <div class="ring"><div class="count" id="countVal">5</div></div>
+    <h2>Possible crash detected</h2>
+    <p>Sending your location and safety profile to emergency contacts and nearby help. Cancel if this is a false alarm.</p>
+    <button class="cancel" id="cancelBtn">Cancel Alert</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+/* ============ CONFIG — fill these in from your Supabase project ============ */
+const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";      // e.g. https://xxxx.supabase.co
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+/* ============================================================================ */
+
+let supabase = null;
+try {
+  if (SUPABASE_URL.startsWith("http")) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (e) { console.warn("Supabase not configured yet", e); }
+
+/* ---------- device / profile id (local, no login) ---------- */
+function uuid(){
+  return crypto.randomUUID ? crypto.randomUUID() :
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+      const r = Math.random()*16|0, v = c=='x'?r:(r&0x3|0x8); return v.toString(16);
+    });
+}
+let deviceId = localStorage.getItem('ad_device_id');
+if (!deviceId){ deviceId = uuid(); localStorage.setItem('ad_device_id', deviceId); }
+
+/* ---------- thresholds (tune as needed) ---------- */
+const ACCEL_SPIKE_G = 2.2;        // sudden change in |acceleration-gravity|, in g, within SPIKE_WINDOW_MS
+const SPIKE_WINDOW_MS = 150;
+const GYRO_THRESHOLD_DPS = 180;   // abnormal rotation rate deg/s
+const SPEED_HIGH_KMH = 20;
+const SPEED_LOW_KMH = 4;
+const SIGNAL_VALID_MS = 3000;     // a flagged signal stays "hot" for this long
+const COOLDOWN_MS = 60000;        // don't re-trigger for a minute after an alert
+
+let flags = { accel:0, gyro:0, speed:0 };
+let lastAccelSample = null;
+let lastSpeedSample = null; // {kmh, t}
+let lastPosition = null;
+let sensorsOn = false;
+let inCrashFlow = false;
+let lastAlertAt = 0;
+
+const el = id => document.getElementById(id);
+
+function setState(kind, label, desc){
+  el('stateDot').className = 'dot ' + kind;
+  el('stateLabel').className = 'state ' + kind;
+  el('stateLabel').textContent = label;
+  el('stateDesc').textContent = desc;
+}
+
+function toast(msg){
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ---------- profile load/save ---------- */
+function loadProfile(){
+  const raw = localStorage.getItem('ad_profile');
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+function fillProfileForm(p){
+  if (!p) return;
+  el('pName').value = p.name||'';
+  el('pBlood').value = p.blood||'';
+  el('pAge').value = p.age||'';
+  el('pMedical').value = p.medical||'';
+  el('pContactName').value = p.contactName||'';
+  el('pContactPhone').value = p.contactPhone||'';
+}
+fillProfileForm(loadProfile());
+
+el('profileToggleBtn').onclick = () => {
+  const s = el('profileSection');
+  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+};
+
+el('saveProfileBtn').onclick = async () => {
+  const profile = {
+    id: deviceId,
+    name: el('pName').value.trim(),
+    blood: el('pBlood').value,
+    age: el('pAge').value,
+    medical: el('pMedical').value.trim(),
+    contactName: el('pContactName').value.trim(),
+    contactPhone: el('pContactPhone').value.trim(),
+  };
+  localStorage.setItem('ad_profile', JSON.stringify(profile));
+  el('saveStatus').textContent = 'Saved locally ✓';
+
+  if (supabase){
+    const { error } = await supabase.from('profiles').upsert({
+      id: profile.id,
+      name: profile.name,
+      blood_group: profile.blood,
+      age: profile.age ? Number(profile.age) : null,
+      medical_notes: profile.medical,
+      emergency_contact_name: profile.contactName,
+      emergency_contact_phone: profile.contactPhone,
+      updated_at: new Date().toISOString()
+    });
+    el('saveStatus').textContent = error ? 'Saved locally (cloud sync failed)' : 'Saved & synced ✓';
+  }
+};
+
+/* ---------- sensor enable ---------- */
+el('enableBtn').onclick = async () => {
+  try {
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+      const res = await DeviceMotionEvent.requestPermission();
+      if (res !== 'granted'){ toast('Motion permission denied'); return; }
+    }
+    navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy:true});
+
+    window.addEventListener('devicemotion', onMotion);
+    navigator.geolocation.watchPosition(onPosition, onPosError, {
+      enableHighAccuracy:true, maximumAge:1000, timeout:8000
+    });
+
+    sensorsOn = true;
+    el('enableSection').style.display = 'none';
+    setState('safe','MONITORING','All clear. Watching accelerometer, gyroscope and GPS together for crash signatures.');
+    el('subLine').textContent = 'Sensors active';
+  } catch(e){
+    toast('Could not enable sensors: ' + e.message);
+  }
+};
+
+function onPosError(err){
+  console.warn('geo error', err);
+}
+
+/* ---------- motion handling ---------- */
+function onMotion(e){
+  const a = e.accelerationIncludingGravity || e.acceleration;
+  const now = Date.now();
+
+  if (a && (a.x!==null)){
+    const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+    const gDelta = Math.abs(mag - 9.81) / 9.81; // in g
+    el('accelVal').textContent = gDelta.toFixed(2);
+
+    if (lastAccelSample){
+      const dt = now - lastAccelSample.t;
+      const jump = Math.abs(mag - lastAccelSample.mag) / 9.81;
+      if (dt <= SPIKE_WINDOW_MS && jump >= ACCEL_SPIKE_G){
+        flags.accel = now;
+        el('accelVal').classList.add('flag');
+      } else if (now - flags.accel > SIGNAL_VALID_MS){
+        el('accelVal').classList.remove('flag');
+      }
+    }
+    lastAccelSample = { mag, t: now };
+  }
+
+  const r = e.rotationRate;
+  if (r && r.alpha !== null){
+    const rotMag = Math.sqrt((r.alpha||0)**2 + (r.beta||0)**2 + (r.gamma||0)**2);
+    el('gyroVal').textContent = Math.round(rotMag);
+    if (rotMag >= GYRO_THRESHOLD_DPS){
+      flags.gyro = now;
+      el('gyroVal').classList.add('flag');
+    } else if (now - flags.gyro > SIGNAL_VALID_MS){
+      el('gyroVal').classList.remove('flag');
+    }
+  }
+
+  evaluateSignals(now);
+}
+
+function onPosition(pos){
+  const now = Date.now();
+  lastPosition = pos;
+  let kmh = null;
+
+  if (pos.coords.speed !== null && pos.coords.speed !== undefined){
+    kmh = pos.coords.speed * 3.6;
+  } else if (lastSpeedSample && lastSpeedSample.pos){
+    const distM = haversine(lastSpeedSample.pos.coords, pos.coords);
+    const dtS = (pos.timestamp - lastSpeedSample.pos.timestamp) / 1000;
+    if (dtS > 0) kmh = (distM/dtS) * 3.6;
+  }
+
+  if (kmh !== null){
+    el('speedVal').textContent = Math.round(kmh);
+    if (lastSpeedSample && lastSpeedSample.kmh >= SPEED_HIGH_KMH && kmh <= SPEED_LOW_KMH &&
+        (now - lastSpeedSample.t) <= 6000){
+      flags.speed = now;
+      el('speedVal').classList.add('flag');
+    } else if (now - flags.speed > SIGNAL_VALID_MS){
+      el('speedVal').classList.remove('flag');
+    }
+    lastSpeedSample = { kmh, t: now, pos };
+  }
+
+  evaluateSignals(now);
+}
+
+function haversine(c1, c2){
+  const R = 6371000;
+  const toRad = d => d*Math.PI/180;
+  const dLat = toRad(c2.latitude-c1.latitude);
+  const dLon = toRad(c2.longitude-c1.longitude);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(c1.latitude))*Math.cos(toRad(c2.latitude))*Math.sin(dLon/2)**2;
+  return R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function evaluateSignals(now){
+  if (inCrashFlow || (now - lastAlertAt) < COOLDOWN_MS) return;
+  const fresh = t => t && (now - t) <= SIGNAL_VALID_MS;
+  if (fresh(flags.accel) && fresh(flags.gyro) && fresh(flags.speed)){
+    triggerCrashFlow({accel:flags.accel, gyro:flags.gyro, speed:flags.speed}, false);
+  }
+}
+
+/* ---------- crash confirm flow ---------- */
+let countdownTimer = null;
+function triggerCrashFlow(rawSignals, isTest){
+  inCrashFlow = true;
+  setState('danger','CRASH DETECTED','Confirming before sending alert...');
+  el('crashOverlay').classList.add('show');
+  let n = 5;
+  el('countVal').textContent = n;
+  countdownTimer = setInterval(()=>{
+    n -= 1;
+    el('countVal').textContent = n;
+    if (n <= 0){
+      clearInterval(countdownTimer);
+      finalizeAlert(rawSignals, isTest);
+    }
+  }, 1000);
+}
+
+el('cancelBtn').onclick = () => {
+  clearInterval(countdownTimer);
+  el('crashOverlay').classList.remove('show');
+  inCrashFlow = false;
+  flags = { accel:0, gyro:0, speed:0 };
+  ['accelVal','gyroVal','speedVal'].forEach(id=>el(id).classList.remove('flag'));
+  setState('safe','MONITORING','All clear. False alarm cancelled — back to watching sensors.');
+  addLogItem(new Date(), 'cancelled');
+  toast('Alert cancelled');
+};
+
+async function finalizeAlert(rawSignals, isTest){
+  el('crashOverlay').classList.remove('show');
+  inCrashFlow = false;
+  lastAlertAt = Date.now();
+  const profile = loadProfile() || {};
+  const coords = lastPosition ? lastPosition.coords : null;
+
+  const payload = {
+    profile_id: deviceId,
+    triggered_at: new Date().toISOString(),
+    latitude: coords ? coords.latitude : null,
+    longitude: coords ? coords.longitude : null,
+    accuracy: coords ? coords.accuracy : null,
+    status: 'sent',
+    is_test: !!isTest,
+    raw_signals: rawSignals
+  };
+
+  let saved = false;
+  if (supabase){
+    const { error } = await supabase.from('alerts').insert(payload);
+    saved = !error;
+    if (error) console.warn('Supabase insert failed', error);
+  }
+
+  addLogItem(new Date(), 'sent', coords);
+  setState('warn','ALERT SENT','Location and safety profile shared. Monitoring resumed.');
+  toast(saved ? 'Alert saved to Supabase' : 'Alert logged locally (check Supabase config)');
+
+  setTimeout(()=>{
+    if (!inCrashFlow) setState('safe','MONITORING','All clear. Watching for crash signatures.');
+  }, 4000);
+}
+
+/* ---------- log list (in-memory + optionally fetched) ---------- */
+let logs = [];
+function addLogItem(date, status, coords){
+  logs.unshift({date, status, coords});
+  renderLog();
+}
+function renderLog(){
+  const list = el('logList');
+  if (!logs.length){ list.innerHTML = '<div class="empty">No alerts yet</div>'; return; }
+  list.innerHTML = logs.map(l => `
+    <div class="logitem">
+      <div class="t">${l.date.toLocaleString()}</div>
+      <div class="s ${l.status}">${l.status === 'sent' ? '🚨 Alert sent' : '✕ Cancelled'}</div>
+      ${l.coords ? `<div style="color:var(--muted);margin-top:2px;">${l.coords.latitude.toFixed(4)}, ${l.coords.longitude.toFixed(4)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+/* ---------- test button (dev-only, does not require a real crash) ---------- */
+el('testBtn').onclick = () => {
+  if (inCrashFlow) return;
+  if (!lastPosition){
+    navigator.geolocation.getCurrentPosition(pos => { lastPosition = pos; }, ()=>{}, {enableHighAccuracy:true});
+  }
+  triggerCrashFlow({accel:'test', gyro:'test', speed:'test'}, true);
+};
+</script>
+</body>
+</html>
