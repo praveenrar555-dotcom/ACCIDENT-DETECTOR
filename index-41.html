@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Accident Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220;
+    --panel:#121B2E;
+    --panel-alt:#1A2540;
+    --border:#243252;
+    --text:#E7ECF3;
+    --muted:#8896B3;
+    --amber:#FFB020;
+    --danger:#E5484D;
+    --safe:#2DD4A7;
+    --chat:#5B8CFF;
+    --mono: 'Space Grotesk', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:480px;margin:0 auto;padding:20px 18px 90px;position:relative;min-height:100vh;}
+  .hidden{display:none !important;}
+
+  /* ---------- Auth screens ---------- */
+  .auth-wrap{max-width:420px;margin:0 auto;padding:14vh 22px 40px;display:flex;flex-direction:column;min-height:100vh;}
+  .auth-logo{width:64px;height:64px;border-radius:18px;background:linear-gradient(145deg,var(--amber),#ff8a3d);
+    display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 18px;
+    box-shadow:0 10px 30px rgba(255,176,32,.25);}
+  .auth-title{font-family:var(--mono);font-size:22px;font-weight:700;text-align:center;margin:0 0 4px;}
+  .auth-sub{font-size:13px;color:var(--muted);text-align:center;margin:0 0 30px;line-height:1.5;}
+  .auth-tabs{display:flex;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:4px;margin-bottom:22px;}
+  .auth-tab{flex:1;text-align:center;padding:10px;border-radius:10px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;}
+  .auth-tab.active{background:var(--amber);color:#1A1200;}
+  .auth-err{font-size:12px;color:var(--danger);min-height:16px;margin:-8px 0 10px;}
+  .auth-foot{font-size:11px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.6;}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;padding:6px 0 20px;}
+  header.top .brand{display:flex;align-items:center;gap:10px;}
+  header.top .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--muted);transition:background .3s;}
+  header.top .brand .dot.safe{background:var(--safe);box-shadow:0 0 0 4px rgba(45,212,167,.15);}
+  header.top .brand .dot.warn{background:var(--amber);box-shadow:0 0 0 4px rgba(255,176,32,.18);}
+  header.top .brand .dot.danger{background:var(--danger);box-shadow:0 0 0 4px rgba(229,72,77,.18);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  header.top h1{font-family:var(--mono);font-size:15px;font-weight:600;margin:0;letter-spacing:.2px;}
+  header.top .sub{font-size:11px;color:var(--muted);margin-top:1px;}
+  header.top button.iconbtn{background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:10px;width:38px;height:38px;font-size:16px;cursor:pointer;}
+
+  .status-card{
+    background:linear-gradient(180deg,var(--panel) 0%, var(--panel-alt) 100%);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:28px 20px 24px;
+    text-align:center;
+    margin-bottom:16px;
+  }
+  .status-card .state{
+    font-family:var(--mono);
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:.5px;
+  }
+  .status-card .state.safe{color:var(--safe);}
+  .status-card .state.warn{color:var(--amber);}
+  .status-card .state.danger{color:var(--danger);}
+  .status-card .desc{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5;}
+
+  .sensor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .sensor-tile{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+  .sensor-tile .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}
+  .sensor-tile .val{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:4px;}
+  .sensor-tile .val.flag{color:var(--danger);}
+
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;}
+  .section h2{font-size:13px;margin:0 0 12px;color:var(--text);font-weight:600;}
+  .section h2 .n{color:var(--muted);font-weight:500;}
+
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;}
+  .field input, .field select, .field textarea{
+    width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+    border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;
+  }
+  .field textarea{resize:vertical;min-height:52px;}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--amber);outline-offset:0;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  button.primary{
+    width:100%;background:var(--amber);color:#1A1200;border:none;border-radius:12px;
+    padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+  button.primary:active{opacity:.85;}
+  button.secondary{
+    width:100%;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:12px;
+    padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;
+  }
+  button.danger-outline{
+    width:100%;background:rgba(229,72,77,.08);color:var(--danger);border:1px solid rgba(229,72,77,.4);
+    border-radius:12px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;
+  }
+  .savebtn{color:var(--safe);font-size:12px;text-align:right;height:16px;margin-top:6px;}
+
+  .loglist{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto;}
+  .logitem{border:1px solid var(--border);background:var(--panel-alt);border-radius:10px;padding:10px 12px;font-size:12px;}
+  .logitem .t{color:var(--muted);font-family:var(--mono);font-size:10px;}
+  .logitem .s{margin-top:3px;font-weight:600;}
+  .logitem .s.sent{color:var(--danger);}
+  .logitem .s.cancelled{color:var(--muted);}
+  .empty{color:var(--muted);font-size:12px;text-align:center;padding:14px 0;}
+
+  /* ---------- Emergency Aid button ---------- */
+  .sos-btn{
+    width:100%;background:radial-gradient(circle at 30% 20%,#ff6161,var(--danger));
+    border:none;border-radius:20px;padding:22px 18px;color:#fff;text-align:left;cursor:pointer;
+    display:flex;align-items:center;gap:14px;margin-bottom:16px;
+    box-shadow:0 10px 26px rgba(229,72,77,.32);font-family:inherit;
+  }
+  .sos-btn .ic{font-size:30px;line-height:1;}
+  .sos-btn .tt{font-family:var(--mono);font-size:16px;font-weight:700;}
+  .sos-btn .dd{font-size:11px;opacity:.85;margin-top:2px;}
+
+  /* ---------- Bottom nav ---------- */
+  .bottomnav{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:rgba(18,27,46,.92);backdrop-filter:blur(10px);
+    border-top:1px solid var(--border);
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+  }
+  .bottomnav .inner{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);}
+  .navbtn{background:none;border:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;
+    gap:3px;font-size:10px;font-family:inherit;padding:6px 0;cursor:pointer;font-weight:600;}
+  .navbtn .ic{font-size:19px;}
+  .navbtn.active{color:var(--amber);}
+
+  .tabview{display:none;}
+  .tabview.active{display:block;}
+
+  .avatar{width:52px;height:52px;border-radius:50%;background:var(--panel-alt);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:18px;color:var(--amber);}
+  .profile-head{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
+  .profile-head .nm{font-weight:700;font-size:15px;}
+  .profile-head .un{font-size:12px;color:var(--muted);}
+
+  .contact-item{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);
+    background:var(--panel-alt);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+  .contact-item .nm{font-size:13px;font-weight:600;}
+  .contact-item .ph{font-size:11px;color:var(--muted);margin-top:2px;}
+  .contact-item a{color:var(--chat);text-decoration:none;font-size:12px;font-weight:700;border:1px solid var(--chat);
+    border-radius:8px;padding:6px 10px;}
+
+  .chat-bubble-row{display:flex;margin-bottom:8px;}
+  .chat-bubble-row.me{justify-content:flex-end;}
+  .chat-bubble{max-width:78%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.4;}
+  .chat-bubble-row.them .chat-bubble{background:var(--panel-alt);border:1px solid var(--border);border-bottom-left-radius:4px;}
+  .chat-bubble-row.me .chat-bubble{background:var(--chat);color:#fff;border-bottom-right-radius:4px;}
+  .chat-input-row{display:flex;gap:8px;}
+  .chat-input-row input{flex:1;}
+  .chat-input-row button{width:auto;padding:10px 16px;}
+
+  /* full-screen crash confirm overlay */
+  .overlay{
+    position:fixed;inset:0;background:rgba(8,10,18,.92);backdrop-filter:blur(4px);
+    display:flex;align-items:center;justify-content:center;z-index:50;
+    opacity:0;pointer-events:none;transition:opacity .2s;
+  }
+  .overlay.show{opacity:1;pointer-events:all;}
+  .overlay .box{width:min(360px,88vw);text-align:center;}
+  .overlay .ring{
+    width:150px;height:150px;border-radius:50%;margin:0 auto 22px;
+    display:flex;align-items:center;justify-content:center;position:relative;
+    border:4px solid var(--danger);
+  }
+  .overlay .ring .count{font-family:var(--mono);font-size:52px;font-weight:700;color:var(--danger);}
+  .overlay h2{font-size:19px;margin:0 0 8px;}
+  .overlay p{font-size:13px;color:var(--muted);margin:0 0 22px;line-height:1.5;}
+  .overlay button.cancel{
+    width:100%;background:var(--text);color:#0B1220;border:none;border-radius:14px;padding:16px;
+    font-size:15px;font-weight:700;cursor:pointer;
+  }
+
+  .toast{
+    position:fixed;bottom:78px;left:50%;transform:translateX(-50%);
+    background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+    padding:11px 18px;border-radius:12px;font-size:13px;z-index:60;
+    opacity:0;transition:opacity .3s,bottom .3s;pointer-events:none;
+  }
+  .toast.show{opacity:1;bottom:88px;}
+
+  .permnote{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5;}
+  .test-hint{font-size:11px;color:var(--muted);margin-top:8px;text-align:center;}
+</style>
+</head>
+<body>
+
+<!-- =========================== AUTH SCREENS =========================== -->
+<div class="auth-wrap" id="authWrap">
+  <div class="auth-logo">🚨</div>
+  <div class="auth-title">Accident Detector</div>
+  <div class="auth-sub">Automatic crash detection with one-tap emergency alerts to the people who matter.</div>
+
+  <div class="auth-tabs">
+    <div class="auth-tab active" id="tabLoginBtn">Log In</div>
+    <div class="auth-tab" id="tabSignupBtn">Sign Up</div>
+  </div>
+
+  <!-- Login form -->
+  <div id="loginForm">
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="liUsername" placeholder="Your username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="liPassword" placeholder="••••••••">
+    </div>
+    <div class="auth-err" id="loginErr"></div>
+    <button class="primary" id="loginBtn">Log In</button>
+    <div class="auth-foot">Forgot password? <span id="forgotLink" style="color:var(--amber);cursor:pointer;">Reset with security question</span></div>
+  </div>
+
+  <!-- Signup form -->
+  <div id="signupForm" class="hidden">
+    <div class="field">
+      <label>Full name</label>
+      <input type="text" id="suName" placeholder="e.g. Riya Sharma">
+    </div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="suUsername" placeholder="Choose a username">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Set password</label>
+        <input type="password" id="suPassword" placeholder="••••••••">
+      </div>
+      <div class="field">
+        <label>Confirm password</label>
+        <input type="password" id="suPassword2" placeholder="••••••••">
+      </div>
+    </div>
+    <div class="field">
+      <label>Security question</label>
+      <select id="suSecQ">
+        <option>What is your pet's name?</option>
+        <option>What is your birth city?</option>
+        <option>What is your mother's maiden name?</option>
+        <option>What was your first school?</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Answer</label>
+      <input type="text" id="suSecA" placeholder="Your answer">
+    </div>
+    <div class="auth-err" id="signupErr"></div>
+    <button class="primary" id="signupBtn">Create Account</button>
+  </div>
+
+  <!-- Reset form -->
+  <div id="resetForm" class="hidden">
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="rsUsername" placeholder="Your username">
+    </div>
+    <div class="field" id="rsQBlock" style="display:none;">
+      <label id="rsQLabel">Security question</label>
+      <input type="text" id="rsAnswer" placeholder="Your answer">
+    </div>
+    <div class="field hidden" id="rsNewPassBlock">
+      <label>New password</label>
+      <input type="password" id="rsNewPass" placeholder="••••••••">
+    </div>
+    <div class="auth-err" id="resetErr"></div>
+    <button class="primary" id="resetBtn">Continue</button>
+    <div class="auth-foot"><span id="backToLoginLink" style="color:var(--amber);cursor:pointer;">Back to login</span></div>
+  </div>
+</div>
+
+<!-- =========================== MAIN APP =========================== -->
+<div class="wrap hidden" id="appWrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="dot" id="stateDot"></div>
+      <div>
+        <h1>Accident Detector</h1>
+        <div class="sub" id="subLine">Sensors idle · tap Enable to start</div>
+      </div>
+    </div>
+    <button class="iconbtn" id="logoutBtn" title="Log out">⏻</button>
+  </header>
+
+  <!-- ---------------- TAB: HOME ---------------- -->
+  <div class="tabview active" id="tabHome">
+
+    <button class="sos-btn" id="sosBtn">
+      <div class="ic">🆘</div>
+      <div>
+        <div class="tt">Emergency Aid</div>
+        <div class="dd">Tap to alert your trusted contacts instantly</div>
+      </div>
+    </button>
+
+    <div class="status-card">
+      <div class="state safe" id="stateLabel">MONITORING OFF</div>
+      <div class="desc" id="stateDesc">Enable sensors to start automatic crash detection. Runs quietly in the background while this tab is open.</div>
+    </div>
+
+    <div class="sensor-grid">
+      <div class="sensor-tile">
+        <div class="label">Impact (Δg)</div>
+        <div class="val" id="accelVal">--</div>
+      </div>
+      <div class="sensor-tile">
+        <div class="label">Rotation °/s</div>
+        <div class="val" id="gyroVal">--</div>
+      </div>
+      <div class="sensor-tile">
+        <div class="label">Speed km/h</div>
+        <div class="val" id="speedVal">--</div>
+      </div>
+    </div>
+
+    <div class="section" id="enableSection">
+      <h2>Step 1 <span class="n">· Enable sensors</span></h2>
+      <button class="primary" id="enableBtn">Enable Motion &amp; Location</button>
+      <div class="permnote">Iske liye motion sensor aur location permission allow karni hogi. iPhone par ek extra "Allow Motion" popup aayega — allow kar dena.</div>
+    </div>
+
+    <div class="section">
+      <h2>Alert History</h2>
+      <div class="loglist" id="logList">
+        <div class="empty">No alerts yet</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="danger-outline" id="testBtn">Run Test Alert (dev/demo only)</button>
+      <div class="test-hint">Isse real detection ko bina crash kiye poora flow test kar sakte ho — countdown, cancel, aur Supabase me alert save hona.</div>
+    </div>
+  </div>
+
+  <!-- ---------------- TAB: CHAT ---------------- -->
+  <div class="tabview" id="tabChat">
+    <div class="section">
+      <h2>Trusted Contacts <span class="n">· quick dial</span></h2>
+      <div id="contactList"></div>
+    </div>
+    <div class="section">
+      <h2>Chat <span class="n">· with trusted contact</span></h2>
+      <div id="chatThread" style="max-height:260px;overflow:auto;margin-bottom:12px;"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Type a message...">
+        <button class="primary" id="chatSendBtn">Send</button>
+      </div>
+      <div class="permnote">Ye chat demo ke liye is device par hi save hota hai — real-time delivery ke liye backend jodna hoga.</div>
+    </div>
+  </div>
+
+  <!-- ---------------- TAB: MEDICAL ---------------- -->
+  <div class="tabview" id="tabMedical">
+    <div class="section">
+      <h2>Medical &amp; Safety Profile <span class="n">· sent with every alert</span></h2>
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" id="pName" placeholder="e.g. Riya Sharma">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Blood group (optional)</label>
+          <select id="pBlood">
+            <option value="">Select</option>
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+            <option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Age</label>
+          <input type="number" id="pAge" placeholder="e.g. 21" min="1" max="120">
+        </div>
+      </div>
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" id="pEmail" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label>Allergies / medical conditions</label>
+        <textarea id="pMedical" placeholder="e.g. Penicillin allergy, asthma — or 'none'"></textarea>
+      </div>
+      <div class="field">
+        <label>Trusted person's email</label>
+        <input type="email" id="pTrustedEmail" placeholder="trusted.person@example.com">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Emergency contact name</label>
+          <input type="text" id="pContactName" placeholder="e.g. Mother">
+        </div>
+        <div class="field">
+          <label>Mobile number (family)</label>
+          <input type="tel" id="pContactPhone" placeholder="+91...">
+        </div>
+      </div>
+      <button class="primary" id="saveProfileBtn">Save Profile</button>
+      <div class="savebtn" id="saveStatus"></div>
+    </div>
+  </div>
+
+  <!-- ---------------- TAB: PROFILE ---------------- -->
+  <div class="tabview" id="tabProfile">
+    <div class="section">
+      <div class="profile-head">
+        <div class="avatar" id="avatarInitial">R</div>
+        <div>
+          <div class="nm" id="acctName">—</div>
+          <div class="un" id="acctUsername">@—</div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <h2>Account</h2>
+      <div class="field">
+        <label>Change password</label>
+        <input type="password" id="pfNewPass" placeholder="New password">
+      </div>
+      <button class="secondary" id="pfChangePassBtn">Update Password</button>
+      <div class="savebtn" id="pfSaveStatus"></div>
+    </div>
+    <div class="section">
+      <button class="danger-outline" id="pfLogoutBtn">Log Out</button>
+    </div>
+  </div>
+
+  <div class="bottomnav">
+    <div class="inner">
+      <button class="navbtn active" data-tab="tabHome"><span class="ic">🏠</span>Home</button>
+      <button class="navbtn" data-tab="tabChat"><span class="ic">💬</span>Chat</button>
+      <button class="navbtn" data-tab="tabMedical"><span class="ic">❤️</span>Medical</button>
+      <button class="navbtn" data-tab="tabProfile"><span class="ic">👤</span>Profile</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="crashOverlay">
+  <div class="box">
+    <div class="ring"><div class="count" id="countVal">5</div></div>
+    <h2 id="overlayTitle">Possible crash detected</h2>
+    <p id="overlayDesc">Sending your location and safety profile to emergency contacts and nearby help. Cancel if this is a false alarm.</p>
+    <button class="cancel" id="cancelBtn">Cancel Alert</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+/* ============ CONFIG — fill these in from your Supabase project ============ */
+const SUPABASE_URL = "https://bxzbskokdzhrsnunbbed.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_toz-R8bG8cICkXXC97Ae-Q_Ou84eC2b";
+/* ============================================================================ */
+
+let supabase = null;
+try {
+  if (SUPABASE_URL.startsWith("http")) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (e) { console.warn("Supabase not configured yet", e); }
+
+const el = id => document.getElementById(id);
+
+/* =========================================================================
+   AUTH (local, device-based accounts — swap for real backend auth later)
+   ========================================================================= */
+function loadUsers(){
+  try { return JSON.parse(localStorage.getItem('ad_users') || '[]'); } catch { return []; }
+}
+function saveUsers(list){ localStorage.setItem('ad_users', JSON.stringify(list)); }
+function getSession(){ return localStorage.getItem('ad_session') || null; }
+function setSession(username){ localStorage.setItem('ad_session', username); }
+function clearSession(){ localStorage.removeItem('ad_session'); }
+
+el('tabLoginBtn').onclick = () => switchAuthTab('login');
+el('tabSignupBtn').onclick = () => switchAuthTab('signup');
+el('forgotLink').onclick = () => switchAuthTab('reset');
+el('backToLoginLink').onclick = () => switchAuthTab('login');
+
+function switchAuthTab(which){
+  el('tabLoginBtn').classList.toggle('active', which==='login');
+  el('tabSignupBtn').classList.toggle('active', which==='signup');
+  el('loginForm').classList.toggle('hidden', which!=='login');
+  el('signupForm').classList.toggle('hidden', which!=='signup');
+  el('resetForm').classList.toggle('hidden', which!=='reset');
+  el('loginErr').textContent = ''; el('signupErr').textContent = ''; el('resetErr').textContent = '';
+}
+
+el('signupBtn').onclick = () => {
+  const name = el('suName').value.trim();
+  const username = el('suUsername').value.trim().toLowerCase();
+  const pass = el('suPassword').value;
+  const pass2 = el('suPassword2').value;
+  const secQ = el('suSecQ').value;
+  const secA = el('suSecA').value.trim();
+  const err = el('signupErr');
+
+  if (!name || !username || !pass || !secA){ err.textContent = 'Please fill in every field.'; return; }
+  if (pass.length < 4){ err.textContent = 'Password should be at least 4 characters.'; return; }
+  if (pass !== pass2){ err.textContent = 'Passwords do not match.'; return; }
+
+  const users = loadUsers();
+  if (users.some(u => u.username === username)){ err.textContent = 'That username is already taken.'; return; }
+
+  users.push({ name, username, password: pass, secQ, secA: secA.toLowerCase() });
+  saveUsers(users);
+  err.textContent = '';
+  setSession(username);
+  enterApp(username);
+};
+
+el('loginBtn').onclick = () => {
+  const username = el('liUsername').value.trim().toLowerCase();
+  const pass = el('liPassword').value;
+  const err = el('loginErr');
+  const users = loadUsers();
+  const u = users.find(x => x.username === username && x.password === pass);
+  if (!u){ err.textContent = 'Incorrect username or password.'; return; }
+  err.textContent = '';
+  setSession(username);
+  enterApp(username);
+};
+
+let resetStage = 'find';
+el('resetBtn').onclick = () => {
+  const err = el('resetErr');
+  const username = el('rsUsername').value.trim().toLowerCase();
+  const users = loadUsers();
+  const u = users.find(x => x.username === username);
+
+  if (resetStage === 'find'){
+    if (!u){ err.textContent = 'No account with that username.'; return; }
+    el('rsQLabel').textContent = u.secQ;
+    el('rsQBlock').style.display = 'block';
+    resetStage = 'verify';
+    err.textContent = '';
+    return;
+  }
+  if (resetStage === 'verify'){
+    const ans = el('rsAnswer').value.trim().toLowerCase();
+    if (ans !== u.secA){ err.textContent = 'That answer is not correct.'; return; }
+    el('rsNewPassBlock').classList.remove('hidden');
+    resetStage = 'reset';
+    err.textContent = '';
+    return;
+  }
+  if (resetStage === 'reset'){
+    const np = el('rsNewPass').value;
+    if (np.length < 4){ err.textContent = 'Password should be at least 4 characters.'; return; }
+    u.password = np;
+    saveUsers(users);
+    resetStage = 'find';
+    el('rsQBlock').style.display = 'none';
+    el('rsNewPassBlock').classList.add('hidden');
+    switchAuthTab('login');
+    toast('Password reset — please log in');
+  }
+};
+
+el('logoutBtn').onclick = doLogout;
+el('pfLogoutBtn').onclick = doLogout;
+function doLogout(){
+  clearSession();
+  el('appWrap').classList.add('hidden');
+  el('authWrap').classList.remove('hidden');
+  switchAuthTab('login');
+}
+
+function enterApp(username){
+  const users = loadUsers();
+  const u = users.find(x => x.username === username);
+  if (!u) return;
+  el('authWrap').classList.add('hidden');
+  el('appWrap').classList.remove('hidden');
+  el('acctName').textContent = u.name;
+  el('acctUsername').textContent = '@' + u.username;
+  el('avatarInitial').textContent = (u.name||'?').trim().charAt(0).toUpperCase();
+  currentUser = u.username;
+  fillProfileForm(loadProfile());
+  renderContacts();
+  renderChat();
+}
+
+el('pfChangePassBtn').onclick = () => {
+  const np = el('pfNewPass').value;
+  const status = el('pfSaveStatus');
+  if (!np || np.length < 4){ status.style.color = 'var(--danger)'; status.textContent = 'Min 4 characters'; return; }
+  const users = loadUsers();
+  const u = users.find(x => x.username === currentUser);
+  if (u){ u.password = np; saveUsers(users); status.style.color = 'var(--safe)'; status.textContent = 'Updated ✓'; el('pfNewPass').value=''; }
+};
+
+/* auto-resume session */
+let currentUser = null;
+const existingSession = getSession();
+if (existingSession && loadUsers().some(u => u.username === existingSession)){
+  enterApp(existingSession);
+} 
+
+/* =========================================================================
+   BOTTOM NAV
+   ========================================================================= */
+document.querySelectorAll('.navbtn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.navbtn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tabview').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    el(btn.dataset.tab).classList.add('active');
+  };
+});
+
+/* =========================================================================
+   TRUSTED CONTACTS + demo chat (per-user, local)
+   ========================================================================= */
+function renderContacts(){
+  const p = loadProfile() || {};
+  const list = el('contactList');
+  const items = [];
+  if (p.contactName || p.contactPhone){
+    items.push({ name: p.contactName || 'Emergency contact', phone: p.contactPhone || '' });
+  }
+  if (p.trustedEmail){
+    items.push({ name: 'Trusted contact', phone: p.trustedEmail });
+  }
+  if (!items.length){
+    list.innerHTML = '<div class="empty">Add contacts in the Medical tab to see them here.</div>';
+    return;
+  }
+  list.innerHTML = items.map(c => `
+    <div class="contact-item">
+      <div>
+        <div class="nm">${c.name}</div>
+        <div class="ph">${c.phone}</div>
+      </div>
+      ${c.phone.includes('@') ? `<a href="mailto:${c.phone}">Email</a>` : `<a href="tel:${c.phone}">Call</a>`}
+    </div>
+  `).join('');
+}
+
+function chatKey(){ return 'ad_chat_' + currentUser; }
+function loadChat(){ try { return JSON.parse(localStorage.getItem(chatKey())||'[]'); } catch { return []; } }
+function saveChat(msgs){ localStorage.setItem(chatKey(), JSON.stringify(msgs)); }
+function renderChat(){
+  const msgs = loadChat();
+  const thread = el('chatThread');
+  if (!msgs.length){
+    thread.innerHTML = '<div class="empty">Say hi to your trusted contact.</div>';
+    return;
+  }
+  thread.innerHTML = msgs.map(m => `
+    <div class="chat-bubble-row ${m.from === 'me' ? 'me' : 'them'}">
+      <div class="chat-bubble">${m.text}</div>
+    </div>
+  `).join('');
+  thread.scrollTop = thread.scrollHeight;
+}
+el('chatSendBtn').onclick = sendChat;
+el('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+function sendChat(){
+  const input = el('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const msgs = loadChat();
+  msgs.push({ from:'me', text });
+  saveChat(msgs);
+  input.value = '';
+  renderChat();
+}
+
+/* ---------- thresholds (tune as needed) ---------- */
+const ACCEL_SPIKE_G = 2.2;
+const SPIKE_WINDOW_MS = 150;
+const GYRO_THRESHOLD_DPS = 180;
+const SPEED_HIGH_KMH = 20;
+const SPEED_LOW_KMH = 4;
+const SIGNAL_VALID_MS = 3000;
+const COOLDOWN_MS = 60000;
+
+let flags = { accel:0, gyro:0, speed:0 };
+let lastAccelSample = null;
+let lastSpeedSample = null;
+let lastPosition = null;
+let sensorsOn = false;
+let inCrashFlow = false;
+let lastAlertAt = 0;
+
+function uuid(){
+  return crypto.randomUUID ? crypto.randomUUID() :
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+      const r = Math.random()*16|0, v = c=='x'?r:(r&0x3|0x8); return v.toString(16);
+    });
+}
+let deviceId = localStorage.getItem('ad_device_id');
+if (!deviceId){ deviceId = uuid(); localStorage.setItem('ad_device_id', deviceId); }
+
+function setState(kind, label, desc){
+  el('stateDot').className = 'dot ' + kind;
+  el('stateLabel').className = 'state ' + kind;
+  el('stateLabel').textContent = label;
+  el('stateDesc').textContent = desc;
+}
+
+function toast(msg){
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ---------- profile load/save (per user) ---------- */
+function profileKey(){ return 'ad_profile_' + (currentUser || 'guest'); }
+function loadProfile(){
+  const raw = localStorage.getItem(profileKey());
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+function fillProfileForm(p){
+  el('pName').value = p ? (p.name||'') : '';
+  el('pBlood').value = p ? (p.blood||'') : '';
+  el('pAge').value = p ? (p.age||'') : '';
+  el('pEmail').value = p ? (p.email||'') : '';
+  el('pMedical').value = p ? (p.medical||'') : '';
+  el('pTrustedEmail').value = p ? (p.trustedEmail||'') : '';
+  el('pContactName').value = p ? (p.contactName||'') : '';
+  el('pContactPhone').value = p ? (p.contactPhone||'') : '';
+}
+
+el('saveProfileBtn').onclick = async () => {
+  const profile = {
+    id: deviceId,
+    username: currentUser,
+    name: el('pName').value.trim(),
+    blood: el('pBlood').value,
+    age: el('pAge').value,
+    email: el('pEmail').value.trim(),
+    medical: el('pMedical').value.trim(),
+    trustedEmail: el('pTrustedEmail').value.trim(),
+    contactName: el('pContactName').value.trim(),
+    contactPhone: el('pContactPhone').value.trim(),
+  };
+  localStorage.setItem(profileKey(), JSON.stringify(profile));
+  el('saveStatus').textContent = 'Saved locally ✓';
+  renderContacts();
+
+  if (supabase){
+    const { error } = await supabase.from('profiles').upsert({
+      id: profile.id,
+      name: profile.name,
+      blood_group: profile.blood,
+      age: profile.age ? Number(profile.age) : null,
+      email: profile.email,
+      medical_notes: profile.medical,
+      trusted_email: profile.trustedEmail,
+      emergency_contact_name: profile.contactName,
+      emergency_contact_phone: profile.contactPhone,
+      updated_at: new Date().toISOString()
+    });
+    el('saveStatus').textContent = error ? 'Saved locally (cloud sync failed)' : 'Saved & synced ✓';
+  }
+};
+
+/* ---------- sensor enable ---------- */
+el('enableBtn').onclick = async () => {
+  try {
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+      const res = await DeviceMotionEvent.requestPermission();
+      if (res !== 'granted'){ toast('Motion permission denied'); return; }
+    }
+    navigator.geolocation.getCurrentPosition(()=>{}, ()=>{}, {enableHighAccuracy:true});
+
+    window.addEventListener('devicemotion', onMotion);
+    navigator.geolocation.watchPosition(onPosition, onPosError, {
+      enableHighAccuracy:true, maximumAge:1000, timeout:8000
+    });
+
+    sensorsOn = true;
+    el('enableSection').style.display = 'none';
+    setState('safe','MONITORING','All clear. Watching accelerometer, gyroscope and GPS together for crash signatures.');
+    el('subLine').textContent = 'Sensors active';
+  } catch(e){
+    toast('Could not enable sensors: ' + e.message);
+  }
+};
+
+function onPosError(err){ console.warn('geo error', err); }
+
+/* ---------- motion handling ---------- */
+function onMotion(e){
+  const a = e.accelerationIncludingGravity || e.acceleration;
+  const now = Date.now();
+
+  if (a && (a.x!==null)){
+    const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+    const gDelta = Math.abs(mag - 9.81) / 9.81;
+    el('accelVal').textContent = gDelta.toFixed(2);
+
+    if (lastAccelSample){
+      const dt = now - lastAccelSample.t;
+      const jump = Math.abs(mag - lastAccelSample.mag) / 9.81;
+      if (dt <= SPIKE_WINDOW_MS && jump >= ACCEL_SPIKE_G){
+        flags.accel = now;
+        el('accelVal').classList.add('flag');
+      } else if (now - flags.accel > SIGNAL_VALID_MS){
+        el('accelVal').classList.remove('flag');
+      }
+    }
+    lastAccelSample = { mag, t: now };
+  }
+
+  const r = e.rotationRate;
+  if (r && r.alpha !== null){
+    const rotMag = Math.sqrt((r.alpha||0)**2 + (r.beta||0)**2 + (r.gamma||0)**2);
+    el('gyroVal').textContent = Math.round(rotMag);
+    if (rotMag >= GYRO_THRESHOLD_DPS){
+      flags.gyro = now;
+      el('gyroVal').classList.add('flag');
+    } else if (now - flags.gyro > SIGNAL_VALID_MS){
+      el('gyroVal').classList.remove('flag');
+    }
+  }
+
+  evaluateSignals(now);
+}
+
+function onPosition(pos){
+  const now = Date.now();
+  lastPosition = pos;
+  let kmh = null;
+
+  if (pos.coords.speed !== null && pos.coords.speed !== undefined){
+    kmh = pos.coords.speed * 3.6;
+  } else if (lastSpeedSample && lastSpeedSample.pos){
+    const distM = haversine(lastSpeedSample.pos.coords, pos.coords);
+    const dtS = (pos.timestamp - lastSpeedSample.pos.timestamp) / 1000;
+    if (dtS > 0) kmh = (distM/dtS) * 3.6;
+  }
+
+  if (kmh !== null){
+    el('speedVal').textContent = Math.round(kmh);
+    if (lastSpeedSample && lastSpeedSample.kmh >= SPEED_HIGH_KMH && kmh <= SPEED_LOW_KMH &&
+        (now - lastSpeedSample.t) <= 6000){
+      flags.speed = now;
+      el('speedVal').classList.add('flag');
+    } else if (now - flags.speed > SIGNAL_VALID_MS){
+      el('speedVal').classList.remove('flag');
+    }
+    lastSpeedSample = { kmh, t: now, pos };
+  }
+
+  evaluateSignals(now);
+}
+
+function haversine(c1, c2){
+  const R = 6371000;
+  const toRad = d => d*Math.PI/180;
+  const dLat = toRad(c2.latitude-c1.latitude);
+  const dLon = toRad(c2.longitude-c1.longitude);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(c1.latitude))*Math.cos(toRad(c2.latitude))*Math.sin(dLon/2)**2;
+  return R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function evaluateSignals(now){
+  if (inCrashFlow || (now - lastAlertAt) < COOLDOWN_MS) return;
+  const fresh = t => t && (now - t) <= SIGNAL_VALID_MS;
+  if (fresh(flags.accel) && fresh(flags.gyro) && fresh(flags.speed)){
+    triggerCrashFlow({accel:flags.accel, gyro:flags.gyro, speed:flags.speed}, false);
+  }
+}
+
+/* ---------- crash confirm flow ---------- */
+let countdownTimer = null;
+function triggerCrashFlow(rawSignals, isTest, manual){
+  inCrashFlow = true;
+  el('overlayTitle').textContent = manual ? 'Send emergency alert?' : 'Possible crash detected';
+  el('overlayDesc').textContent = manual
+    ? 'Your location and safety profile will be sent to your trusted contacts. Cancel if you tapped by mistake.'
+    : 'Sending your location and safety profile to emergency contacts and nearby help. Cancel if this is a false alarm.';
+  setState('danger','CRASH DETECTED','Confirming before sending alert...');
+  el('crashOverlay').classList.add('show');
+  let n = 5;
+  el('countVal').textContent = n;
+  countdownTimer = setInterval(()=>{
+    n -= 1;
+    el('countVal').textContent = n;
+    if (n <= 0){
+      clearInterval(countdownTimer);
+      finalizeAlert(rawSignals, isTest);
+    }
+  }, 1000);
+}
+
+el('cancelBtn').onclick = () => {
+  clearInterval(countdownTimer);
+  el('crashOverlay').classList.remove('show');
+  inCrashFlow = false;
+  flags = { accel:0, gyro:0, speed:0 };
+  ['accelVal','gyroVal','speedVal'].forEach(id=>el(id).classList.remove('flag'));
+  setState('safe','MONITORING','All clear. False alarm cancelled — back to watching sensors.');
+  addLogItem(new Date(), 'cancelled');
+  toast('Alert cancelled');
+};
+
+/* ---------- manual Emergency Aid button ---------- */
+el('sosBtn').onclick = () => {
+  if (inCrashFlow) return;
+  if (!lastPosition){
+    navigator.geolocation.getCurrentPosition(pos => { lastPosition = pos; }, ()=>{}, {enableHighAccuracy:true});
+  }
+  triggerCrashFlow({accel:'manual', gyro:'manual', speed:'manual'}, false, true);
+};
+
+async function finalizeAlert(rawSignals, isTest){
+  el('crashOverlay').classList.remove('show');
+  inCrashFlow = false;
+  lastAlertAt = Date.now();
+  const coords = lastPosition ? lastPosition.coords : null;
+
+  const payload = {
+    profile_id: deviceId,
+    triggered_at: new Date().toISOString(),
+    latitude: coords ? coords.latitude : null,
+    longitude: coords ? coords.longitude : null,
+    accuracy: coords ? coords.accuracy : null,
+    status: 'sent',
+    is_test: !!isTest,
+    raw_signals: rawSignals
+  };
+
+  let saved = false;
+  if (supabase){
+    const { error } = await supabase.from('alerts').insert(payload);
+    saved = !error;
+    if (error) console.warn('Supabase insert failed', error);
+  }
+
+  addLogItem(new Date(), 'sent', coords);
+  setState('warn','ALERT SENT','Location and safety profile shared. Monitoring resumed.');
+  toast(saved ? 'Alert saved to Supabase' : 'Alert logged locally (check Supabase config)');
+
+  setTimeout(()=>{
+    if (!inCrashFlow) setState('safe','MONITORING','All clear. Watching for crash signatures.');
+  }, 4000);
+}
+
+/* ---------- log list ---------- */
+let logs = [];
+function addLogItem(date, status, coords){
+  logs.unshift({date, status, coords});
+  renderLog();
+}
+function renderLog(){
+  const list = el('logList');
+  if (!logs.length){ list.innerHTML = '<div class="empty">No alerts yet</div>'; return; }
+  list.innerHTML = logs.map(l => `
+    <div class="logitem">
+      <div class="t">${l.date.toLocaleString()}</div>
+      <div class="s ${l.status}">${l.status === 'sent' ? '🚨 Alert sent' : '✕ Cancelled'}</div>
+      ${l.coords ? `<div style="color:var(--muted);margin-top:2px;">${l.coords.latitude.toFixed(4)}, ${l.coords.longitude.toFixed(4)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+/* ---------- test button ---------- */
+el('testBtn').onclick = () => {
+  if (inCrashFlow) return;
+  if (!lastPosition){
+    navigator.geolocation.getCurrentPosition(pos => { lastPosition = pos; }, ()=>{}, {enableHighAccuracy:true});
+  }
+  triggerCrashFlow({accel:'test', gyro:'test', speed:'test'}, true);
+};
+</script>
+</body>
+</html>
